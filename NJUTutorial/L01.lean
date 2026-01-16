@@ -1,5 +1,7 @@
 import Mathlib.Tactic
 
+
+namespace L01
 /-!
 # 读懂 Lean 代码
 
@@ -504,6 +506,7 @@ example (x y : ℝ) : (x + y) ^ 2 = x ^ 2 + 2 * x * y + y ^ 2 := by
       rw [← add_assoc, add_assoc (x ^ 2), mul_comm y x, ← two_mul]
     _ = _ := by rw [← mul_assoc]
 
+end L01
 
 
 section Exercise

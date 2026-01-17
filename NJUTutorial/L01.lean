@@ -528,7 +528,17 @@ example (a b : ℝ) : (a + b) * (a - b) = a ^ 2 - b ^ 2 := by sorry
 namespace MyRing
 variable {R : Type*} [Ring R]
 
-#check neg_add_cancel
+-- 以下习题定理在库中已经存在，但请不要直接使用对应定理
+-- 证明中可以使用的库中定理如下
+#check (add_assoc : ∀ a b c : R, a + b + c = a + (b + c))
+#check (add_comm : ∀ a b : R, a + b = b + a)
+#check (zero_add : ∀ a : R, 0 + a = a)
+#check (neg_add_cancel : ∀ a : R, -a + a = 0)
+#check (mul_assoc : ∀ a b c : R, a * b * c = a * (b * c))
+#check (mul_one : ∀ a : R, a * 1 = a)
+#check (one_mul : ∀ a : R, 1 * a = a)
+#check (mul_add : ∀ a b c : R, a * (b + c) = a * b + a * c)
+#check (add_mul : ∀ a b c : R, (a + b) * c = a * c + b * c)
 
 theorem neg_add_cancel_left (a b : R) : -a + (a + b) = b := by
   sorry
@@ -555,11 +565,13 @@ theorem eq_neg_of_add_eq_zero {a b : R} (h : a + b = 0) : a = -b := by
   sorry
 end MyRing
 
+namespace MyGroup
 variable {G : Type*} [Group G]
 
-#check inv_mul_cancel
-
-namespace MyGroup
+-- 要求同上
+#check (mul_assoc : ∀ a b c : G, a * b * c = a * (b * c))
+#check (one_mul : ∀ a : G, 1 * a = a)
+#check (inv_mul_cancel : ∀ a : G, a⁻¹ * a = 1)
 
 theorem mul_inv_cancel (a : G) : a * a⁻¹ = 1 := by
   sorry

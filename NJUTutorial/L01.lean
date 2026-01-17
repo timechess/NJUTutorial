@@ -2,6 +2,7 @@ import Mathlib.Tactic
 
 
 namespace L01
+
 /-!
 # 读懂 Lean 代码
 
@@ -28,13 +29,17 @@ Lean 中的一切表达式均有类型，`#check` 命令可用于检查表达式
 #check True
 #check 1 + 1 = 2
 #check ∀ x : ℕ, x ≥ 0
+#check ∀ x : ℕ, x < 0
 
 #check Nat
+#check ℕ
 #check Nat -> Nat
 #check Type
+#check Type 32
 #check Prop
 
 #check Nat.add_comm
+
 
 /-!
 我们可以对上面 `#check` 输出的类型进行分类，如 `ℕ`、`ℚ`、`Bool` 等可分为一类。使用 `→`
@@ -66,6 +71,8 @@ universe level，为正整数。 `Prop` 即 `Sort 0`，`Type u` 即 `Sort (u+1)`
 #eval 1 + 1
 #eval Nat.Prime 7
 #eval True ∧ False
+#eval true && false
+
 -- 使用 `ctrl + /` 可注释/取消注释代码行
 -- #eval (1 : ℝ) / 2
 -- #eval fun x => x + 1
@@ -98,16 +105,19 @@ def x : ℕ := 42
 #check x
 #eval x
 
-def f₁ : ℕ → ℕ := fun n => n + 1
+def f₁ : ℕ → ℚ → ℕ := fun m _ => m
 
 #check f₁
-#check f₁ 2
+#check f₁ 2 1
 
 def f₂ (n : ℕ) : ℕ := n + 2
 
 #check f₂
 #check f₂ 2
 
+-- def f₃ : ℕ → ℕ → ℕ
+-- def f₃ (a b : ℕ) : ℕ
+-- def f₃ (a : ℕ) (b : ℕ) : ℕ
 def f₃ : (a b : Nat) → Nat := fun a b => a + b
 
 #check f₃
@@ -164,11 +174,10 @@ def f₅ {α : Type} (a : α) : α := a
 
 -- 此处 `[Add α]` 表示 `α` 具备加法结构，因此类型为 `α` 的元素可使用 `+` 运算符。
 def f₆ {α : Type} [Add α] (a b : α) := a + b
-
 #eval f₆ 2 3
 
 -- 反例：若去掉 `[Add α]`，则无法使用 `+` 运算符。
--- def f₆ {α : Type} (a b : α) := a + b
+-- def f₆' {α : Type} (a b : α) := a + b
 
 /-!
 ## section/variable/namespace/open 关键词
@@ -185,6 +194,8 @@ def f₆ {α : Type} [Add α] (a b : α) := a + b
 section MySection
 variable (a b : ℕ)
 
+#check a
+#check b
 def f : ℕ := a + b
 def g : ℕ := a - b
 
@@ -197,6 +208,7 @@ theorem fg₁ : f a b = 2 * a := by
 
 theorem fg₂ : g a b = 0 := by
   rw [g, p, Nat.sub_self]
+
 end MySection
 
 #check f -- 在 section 外依然可用
@@ -216,6 +228,7 @@ def f : ℕ → ℕ := fun n => n * n
 end MyNamespace
 
 #check MyNamespace.f
+#check f
 
 open MyNamespace in
 #check f
@@ -240,9 +253,13 @@ open MyNamespace in
 
 #check Prod
 #check Prod ℕ ℕ
-#check ℕ × ℝ
+#check ℕ × ℝ × ℚ × ℕ
+#check Prod (Prod ℕ ℝ) ℚ
+#check Prod ℕ (Prod ℝ ℚ)
 
+#check Prod ℕ ℕ
 #check Prod.mk 2 3
+
 -- 使用 \< 与 \> 可输入尖括号
 #check (⟨2, 3⟩ : ℕ × ℝ)
 #check (2, 3, 4)
@@ -251,8 +268,8 @@ open MyNamespace in
 #check Sum ℕ ℕ
 #check ℕ ⊕ ℚ
 
-#check (Sum.inl 2 : Sum ℕ ℕ)
-#check (Sum.inr 3 : Sum ℚ ℕ)
+#check (Sum.inl 2 : Sum ℕ String)
+#check (Sum.inr 3 : Sum String ℕ)
 
 #check List
 #check List ℕ
@@ -326,15 +343,19 @@ def f₉ : {α : Type} → (x : α) → (α ⊕ Nat) :=
 theorem thm₆ : ∀ (n : ℕ), n ≥ 0 :=
   fun n => Nat.zero_le n
 
+#check Nat.Prime 7
+
 /-!
 ## 例子： Set
 
 在 Lean 中，集合被定义为某类型元素到命题的映射，即 `Set α := α → Prop`。
 -/
 
+-- Set : α → (α → Prop)
+-- Set α : α → Prop
 #print Set
 
--- 大于 2 的自然数集合
+/-- 大于 2 的自然数集合 -/
 def s₁ : Set ℕ := fun n => n > 2
 def s₂ : Set ℕ := { n : ℕ | n > 2 }
 
@@ -439,10 +460,6 @@ example (P : Prop) (h : P) : P ∧ P := by
   have hp : P := h
   exact And.intro hp h
 
-example (P : Prop) (h : P) : P ∧ P := by
-  have hp := h
-  exact And.intro hp h
-
 
 /-!
 你可以使用 `show_term` 查看tactic为你构造出的term。如果你使用了高级tactic，那么构造出的
@@ -477,6 +494,8 @@ example : Monotone (fun n => n + 1) := by
 虽然 `add_assoc` 等定理的定义中，参数均为显式参数，但 `rw` 时 Lean 会进行自动推断。
 如若你不满意其自动推断的结果，则可以正常手动提供全部（或部分）参数。
 -/
+#check add_assoc
+#check add_comm
 example (a b c : Nat) : a + b + c = b + c + a := by
   rw [add_assoc, add_comm]
 
@@ -496,7 +515,6 @@ example (x y : ℝ) : (x + y) ^ 2 = x ^ 2 + 2 * x * y + y ^ 2 := by
 
 在使用 `rw` 时，我们可以使用 `calc` 让运算过程更清晰可见。 `calc` 常用于等式与不等式的证明。
 -/
-
 example (x y : ℝ) : (x + y) ^ 2 = x ^ 2 + 2 * x * y + y ^ 2 := by
   calc
     _ = (x + y) * (x + y) := by rw [pow_two]
@@ -504,7 +522,8 @@ example (x y : ℝ) : (x + y) ^ 2 = x ^ 2 + 2 * x * y + y ^ 2 := by
     _ = x ^ 2 + x * y + (y * x + y ^ 2) := by rw [← pow_two, ← pow_two]
     _ = x ^ 2 + 2 * (x * y) + y ^ 2 := by
       rw [← add_assoc, add_assoc (x ^ 2), mul_comm y x, ← two_mul]
-    _ = _ := by rw [← mul_assoc]
+    _ = _ := by rw [@NonUnitalRing.mul_assoc]
+
 
 end L01
 
@@ -512,18 +531,21 @@ end L01
 section Exercise
 
 example (a b c : ℝ) : c * b * a = b * (a * c) := by
-  sorry
+  rw [← mul_assoc, mul_comm (b * a), ← mul_assoc]
 
 example (a b c : ℝ) : a * (b * c) = b * (a * c) := by
-  sorry
+  rw [mul_comm, mul_assoc, mul_comm c]
 
 example (a b c d e f : ℝ) (h : b * c = e * f) : a * b * c * d = a * e * f * d := by
-  sorry
+  rw [mul_assoc a, h, ← mul_assoc]
 
 example (a b c d : ℝ) (hyp : c = b * a - d) (hyp' : d = a * b) : c = 0 := by
-  sorry
+  rw [hyp, hyp', mul_comm, sub_self]
 
-example (a b : ℝ) : (a + b) * (a - b) = a ^ 2 - b ^ 2 := by sorry
+example (a b : ℝ) : (a + b) * (a - b) = a ^ 2 - b ^ 2 := by
+  rw [add_mul, mul_sub, mul_sub]
+  rw [← pow_two, ← pow_two]
+  rw [add_sub, sub_add, mul_comm, sub_self, sub_zero]
 
 namespace MyRing
 variable {R : Type*} [Ring R]
@@ -541,28 +563,37 @@ variable {R : Type*} [Ring R]
 #check (add_mul : ∀ a b c : R, (a + b) * c = a * c + b * c)
 
 theorem neg_add_cancel_left (a b : R) : -a + (a + b) = b := by
-  sorry
+  rw [← add_assoc, neg_add_cancel, zero_add]
 
 theorem add_neg_cancel_right (a b : R) : a + b + -b = a := by
-  sorry
+  rw [add_assoc, add_comm b, neg_add_cancel, add_zero]
 
 theorem add_left_cancel {a b c : R} (h : a + b = a + c) : b = c := by
-  sorry
+  have : -a + a + b = -a + a + c := by rw [add_assoc, h, ← add_assoc]
+  rw [neg_add_cancel, zero_add, zero_add] at this
+  exact this
 
 theorem add_right_cancel {a b c : R} (h : a + b = c + b) : a = c := by
-  sorry
+  have : a + b + -b = c + b + -b := by rw [h]
+  rw [add_neg_cancel_right, add_neg_cancel_right] at this
+  exact this
 
 theorem mul_zero (a : R) : a * 0 = 0 := by
-  sorry
+  have : a * 0 + a * 0 = a * 0 + 0 := by
+    rw [← mul_add, add_zero, add_zero]
+  exact add_left_cancel this
 
 theorem zero_mul (a : R) : 0 * a = 0 := by
-  sorry
+  have : 0 * a + 0 * a = 0 + 0 * a := by
+    rw [← add_mul, add_zero, zero_add]
+  exact add_right_cancel this
 
 theorem neg_eq_of_add_eq_zero {a b : R} (h : a + b = 0) : -a = b := by
-  sorry
+  rw [← add_zero (-a), ← h, ← add_assoc, neg_add_cancel, zero_add]
 
 theorem eq_neg_of_add_eq_zero {a b : R} (h : a + b = 0) : a = -b := by
-  sorry
+  rw [← zero_add (-b), ← h, add_assoc, add_neg_cancel, add_zero]
+
 end MyRing
 
 namespace MyGroup
@@ -574,13 +605,20 @@ variable {G : Type*} [Group G]
 #check (inv_mul_cancel : ∀ a : G, a⁻¹ * a = 1)
 
 theorem mul_inv_cancel (a : G) : a * a⁻¹ = 1 := by
-  sorry
+  have : (a * a⁻¹)⁻¹ * (a * a⁻¹ * a * a⁻¹) = a * a⁻¹ := by
+    rw [← mul_assoc (a * a⁻¹)⁻¹, ← mul_assoc, inv_mul_cancel, one_mul]
+  rw [← this]
+  rw [mul_assoc a, inv_mul_cancel, mul_assoc a, one_mul, inv_mul_cancel]
 
 theorem mul_one (a : G) : a * 1 = a := by
-  sorry
+  rw [← inv_mul_cancel a, ← mul_assoc, mul_inv_cancel, one_mul]
 
 theorem mul_inv_rev (a b : G) : (a * b)⁻¹ = b⁻¹ * a⁻¹ := by
-  sorry
+  have : (a * b)⁻¹ * (a * b) * b⁻¹ * a⁻¹ = b⁻¹ * a⁻¹ := by
+    rw [inv_mul_cancel, one_mul]
+  rw [← this]
+  rw [mul_assoc (a * b)⁻¹, mul_assoc a, mul_inv_cancel, mul_one]
+  rw [mul_assoc, mul_inv_cancel, mul_one]
 
 end MyGroup
 end Exercise

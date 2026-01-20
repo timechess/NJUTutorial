@@ -56,7 +56,7 @@ structure命令还帮我们生成了以下函数：
 
 这些函数本质上是在说，要证明两个 `Point` 的实例相等，等价于证明其属性相等。
 -/
-#check Point.mk.injEq
+#check Point.mk.injEq -- 没有 `@[ext]` 也存在该函数
 #check Point.ext
 #check Point.ext_iff
 
@@ -159,7 +159,6 @@ structure SpecialPoint (prop : Point → Prop) where
 def sp₁ : SpecialPoint (fun p => Odd p.x ∧ Odd p.y) where
   point := ⟨1, 3⟩
   property := by
-   repeat
     constructor <;> norm_num
 
 /-!
@@ -185,6 +184,24 @@ def sp₁ : SpecialPoint (fun p => Odd p.x ∧ Odd p.y) where
 -/
 def sp₂ : { p : Point // Odd p.x } := ⟨⟨1, 3⟩, by norm_num⟩
 
+section
+
+variable {α : Type} (s : Set α) (a : s)
+
+-- `↑` 表示发生了隐式类型转换，此时可通过鼠标悬浮查看具体转换过程
+#check a
+#check a.1
+#check a.2
+
+#print Set.Elem
+
+#print Set.Subset
+example (t : Set α) (h : s ⊆ t) : a.1 ∈ t := by
+  apply h
+  exact a.2
+
+end
+
 /-!
 属性当然也可以是函数。
 -/
@@ -198,6 +215,7 @@ structure SpecialFunction (α β : Type) (prop : (α → β) → Prop) where
 2. ℝ²中与原点距离为某一给定值的点。
 3. 等价关系。
 -/
+
 
 /-!
 ## Dot Notation
@@ -266,6 +284,8 @@ notation "P₁" => p1
 
 #check P₁
 
+#check Nat.totient
+
 /-!
 为了便利，我们在这里把 `Point` 上的加法和乘法绑定到 `+` 和 `*` 上，并绑定 `1` 与 `0`。
 你目前不需要理解下面代码的意思。
@@ -320,25 +340,29 @@ instance : One Point where
 请把证明控制在一行。
 -/
 
-theorem add_comm (p1 p2 : Point) : p1 + p2 = p2 + p1 := by sorry
+theorem add_comm (p1 p2 : Point) : p1 + p2 = p2 + p1 := by
+  ext <;> simp <;> linarith
 
-theorem add_assoc (p1 p2 p3 : Point) : p1 + p2 + p3 = p1 + (p2 + p3) := by sorry
+theorem add_assoc (p1 p2 p3 : Point) : p1 + p2 + p3 = p1 + (p2 + p3) := by
+  ext <;> simp <;> linarith
 
-theorem mul_comm (p1 p2 : Point) : p1 * p2 = p2 * p1 := by sorry
+theorem mul_comm (p1 p2 : Point) : p1 * p2 = p2 * p1 := by ext <;> simp <;> linarith
 
-theorem mul_assoc (p1 p2 p3 : Point) : p1 * p2 * p3 = p1 * (p2 * p3) := by sorry
+theorem mul_assoc (p1 p2 p3 : Point) : p1 * p2 * p3 = p1 * (p2 * p3) := by ext <;> simp <;> linarith
 
-theorem mul_add (p1 p2 p3 : Point) : p1 * (p2 + p3) = p1 * p2 + p1 * p3 := by sorry
+theorem mul_add (p1 p2 p3 : Point) : p1 * (p2 + p3) = p1 * p2 + p1 * p3 := by
+ext <;> simp <;> linarith
 
-theorem add_mul (p1 p2 p3 : Point) : (p1 + p2) * p3 = p1 * p3 + p2 * p3 := by sorry
+theorem add_mul (p1 p2 p3 : Point) : (p1 + p2) * p3 = p1 * p3 + p2 * p3 := by
+ext <;> simp <;> linarith
 
-theorem zero_add (p : Point) : 0 + p = p := by sorry
+theorem zero_add (p : Point) : 0 + p = p := by ext <;> simp
 
-theorem add_zero (p : Point) : p + 0 = p := by sorry
+theorem add_zero (p : Point) : p + 0 = p := by ext <;> simp
 
-theorem one_mul (p : Point) : 1 * p = p := by sorry
+theorem one_mul (p : Point) : 1 * p = p := by ext <;> simp
 
-theorem mul_one (p : Point) : p * 1 = p := by sorry
+theorem mul_one (p : Point) : p * 1 = p := by ext <;> simp
 
 /-!
 完成上述练习，你大概就会理解 `simp` 的强大。
@@ -377,8 +401,9 @@ deriving Repr
 #check D.toB
 #check D.toC
 
-
 def d : D := ⟨⟨⟨1⟩, 2⟩, 3⟩
+#eval d
+
 def d' : D where
   toC := ⟨⟨1⟩, 2⟩
   y := 3
@@ -407,6 +432,47 @@ structure D' extends A, B, C where
 
 def d'' : D' := ⟨⟨1⟩, 2, 3⟩
 
+inductive Color
+  | red
+  | green
+  | yellow
+
+#print Nat
+
+inductive MyNat where
+  | succ : MyNat → MyNat
+  | zero : MyNat
+
+#print MyNat
+#check MyNat.zero
+#check MyNat.succ MyNat.zero
+
+#print List
+
+inductive MyList (α : Type) where
+  | nil : MyList α
+  | cons : α → MyList α → MyList α
+
+#check MyList.nil
+#check MyList.cons 2 MyList.nil
+
+inductive Point' where
+  | mk (x : ℝ) (y : ℝ) : Point'
+
+#check Point.x
+
+#check Point'.mk 1 2
+
+def Point'.x (p : Point') : ℝ :=
+  match p with
+  | mk (x : ℝ) (y : ℝ) => by exact x
+
+#print Option
+
+example : MyNat := show_term by
+  constructor
+  exact MyNat.zero
+
 /-!
 ## 例子：二维矩阵
 
@@ -424,6 +490,8 @@ namespace Vec2D
 @[simp] def zero : Vec2D := ⟨0, 0⟩
 @[simp] def neg (v : Vec2D) : Vec2D := ⟨-v.x, -v.y⟩
 @[simp] def smul (n : ℝ) (v : Vec2D) : Vec2D := ⟨n * v.x, n * v.y⟩
+
+@[simp] def mul (v1 v2 : Vec2D) : ℝ := v1.x * v2.x + v1.y * v2.y
 
 theorem add_comm (v1 v2 : Vec2D) : v1.add v2 = v2.add v1 := by
   ext <;> simp <;> linarith
@@ -449,21 +517,21 @@ namespace Mat2D
 
 @[simp] def zero : Mat2D := ⟨⟨0, 0⟩, ⟨0, 0⟩⟩
 @[simp] def one : Mat2D := ⟨⟨1, 0⟩, ⟨0, 1⟩⟩
+
 @[simp] def add (m1 m2 : Mat2D) : Mat2D where
-  fstc := ⟨m1.fstc.x + m2.fstc.x, m1.fstc.y + m2.fstc.y⟩
-  sndc := ⟨m1.sndc.x + m2.sndc.x, m1.sndc.y + m2.sndc.y⟩
+  fstc := m1.fstc.add m2.fstc
+  sndc := m1.sndc.add m2.sndc
+
+@[simp] def fstr (m : Mat2D) : Vec2D := ⟨m.fstc.x, m.sndc.x⟩
+@[simp] def sndr (m : Mat2D) : Vec2D := ⟨m.fstc.y, m.sndc.y⟩
+
 @[simp] def mul (m1 m2 : Mat2D) : Mat2D where
-  fstc := {
-    x := m1.fstc.x * m2.fstc.x + m1.sndc.x * m2.fstc.y
-    y := m1.fstc.y * m2.fstc.x + m1.sndc.y * m2.fstc.y
-  }
-  sndc := {
-    x := m1.fstc.x * m2.sndc.x + m1.sndc.x * m2.sndc.y
-    y := m1.fstc.y * m2.sndc.x + m1.sndc.y * m2.sndc.y
-  }
+  fstc := ⟨m1.fstr.mul m2.fstc, m1.sndr.mul m2.fstc⟩
+  sndc := ⟨m1.fstr.mul m2.sndc, m1.sndr.mul m2.sndc⟩
+
 @[simp] def mul_vec (m : Mat2D) (v : Vec2D) : Vec2D where
-  x := m.fstc.x * v.x + m.sndc.x * v.y
-  y := m.fstc.y * v.x + m.sndc.y * v.y
+  x := m.fstr.mul v
+  y := m.sndr.mul v
 
 theorem mul_assoc (m1 m2 m3 : Mat2D) : (m1.mul m2).mul m3 = m1.mul (m2.mul m3) := by
   ext <;> simp <;> linarith
@@ -492,7 +560,7 @@ end Mat2D
 将对以上定义进行改写。
 -/
 
-
+#print Complex
 /-!
 **习题**
 
@@ -519,7 +587,7 @@ end Mat2D
 
 /-!
 2. 定义 `MyGaussian` 类型，即把 `MyComplex` 中实部与虚部限定在整数上。将上面对 `MyComplex`
-做的工作重新做一遍，然后定义 `MyComplex → ℤ` 的函数 `norm` (norm (a, b) = a² + b²)。证明
+做的工作重新做一遍，然后定义 `MyGaussian → ℤ` 的函数 `norm` (norm (a, b) = a² + b²)。证明
 以下定理：
 - norm (x * y) = norm x * norm y
 - 0 ≤ norm x
